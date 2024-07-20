@@ -1,0 +1,165 @@
+import pygame
+import json
+import random
+import time
+
+# Initialize Pygame
+pygame.init()
+
+# Screen dimensions
+width, height = 800, 600
+win = pygame.display.set_mode((width, height))
+pygame.display.set_caption("Planet War Game")
+
+# Colors
+white = (255, 255, 255)
+black = (0, 0, 0)
+gray = (200, 200, 200)
+green = (0, 255, 0)
+red = (255, 0, 0)
+
+# Load images
+bg_img = pygame.image.load('background.png')
+tank_img = pygame.image.load('tank.png')
+plane_img = pygame.image.load('plane.png')
+missile_img = pygame.image.load('missile.png')
+helicopter_img = pygame.image.load('helicopter.png')
+laser_img = pygame.image.load('laser.png')
+shield_img = pygame.image.load('shield.png')
+factory_img = pygame.image.load('factory.png')
+warehouse_img = pygame.image.load('warehouse.png')
+training_center_img = pygame.image.load('training_center.png')
+resource_depot_img = pygame.image.load('resource_depot.png')
+
+# Font
+font = pygame.font.SysFont(None, 36)
+
+# Sounds
+purchase_sound = pygame.mixer.Sound('purchase.wav')
+attack_sound = pygame.mixer.Sound('attack.wav')
+victory_sound = pygame.mixer.Sound('victory.wav')
+
+# Load translations
+def load_translations(language_code):
+    try:
+        with open(f'translations_{language_code}.json', 'r') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        print(f"Translation file for {language_code} not found.")
+        return {}
+
+def get_translation(key):
+    return translations.get(key, key)
+
+# Default language
+current_language = 'en'
+translations = load_translations(current_language)
+
+def set_language(language_code):
+    global current_language, translations
+    current_language = language_code
+    translations = load_translations(language_code)
+
+# Item prices
+ITEM_PRICES = {
+    'tank': {'stars': 100, 'egyptian_pounds': 50},
+    'plane': {'stars': 150, 'egyptian_pounds': 75},
+    'missile': {'stars': 200, 'egyptian_pounds': 100},
+    'helicopter': {'stars': 250, 'egyptian_pounds': 125},
+    'laser': {'stars': 300, 'egyptian_pounds': 150},
+    'advanced_missile': {'stars': 350, 'egyptian_pounds': 175},
+    'shield': {'stars': 400, 'egyptian_pounds': 200},
+    'factory': {'stars': 500, 'egyptian_pounds': 250},
+    'warehouse': {'stars': 600, 'egyptian_pounds': 300},
+    'training_center': {'stars': 700, 'egyptian_pounds': 350},
+    'resource_depot': {'stars': 800, 'egyptian_pounds': 400},
+    'laser_guided_missile': {'stars': 0, 'egyptian_pounds': 500},  # Special purchase
+}
+
+# Special items
+SPECIAL_ITEMS = {
+    'bomb': {'iron': 5000, 'oil': 2500, 'chemicals': 1000, 'diamonds': 1000, 'time': 5},
+    'electric_cannon': {'iron': 6000, 'oil': 6000, 'chemicals': 3000, 'diamonds': 4000, 'time': 10},
+    'robot': {'iron': 4000, 'oil': 2000, 'chemicals': 4000, 'diamonds': 2000, 'time': 4.5},
+    'laser': {'iron': 1000000, 'oil': 1000000, 'chemicals': 500000, 'diamonds': 500000, 'time': 24},
+}
+
+# Rebel Camps
+class RebelCamp:
+    def __init__(self, level):
+        self.level = level
+        self.strength = 500 + (level - 1) * 500
+        self.resources = self.generate_resources(level)
+        self.location = (random.randint(0, width), random.randint(0, height))
+
+    def generate_resources(self, level):
+        if 1 <= level <= 5:
+            return {'iron': random.randint(100, 500), 'oil': random.randint(100, 500),
+                    'chemicals': random.randint(50, 250), 'diamonds': random.randint(10, 50)}
+        elif 6 <= level <= 11:
+            return {'iron': random.randint(500, 1500), 'oil': random.randint(500, 1500),
+                    'chemicals': random.randint(250, 750), 'diamonds': random.randint(50, 150)}
+        elif 12 <= level <= 20:
+            return {'iron': random.randint(1500, 3000), 'oil': random.randint(1500, 3000),
+                    'chemicals': random.randint(750, 1500), 'diamonds': random.randint(150, 300)}
+        elif 21 <= level <= 30:
+            return {'iron': random.randint(3000, 6000), 'oil': random.randint(3000, 6000),
+                    'chemicals': random.randint(1500, 3000), 'diamonds': random.randint(300, 600)}
+        else:
+            return {'iron': random.randint(6000, 10000), 'oil': random.randint(6000, 10000),
+                    'chemicals': random.randint(3000, 5000), 'diamonds': random.randint(600, 1000)}
+
+    def loot(self, player):
+        if random.random() > 0.5:
+            player.resources['iron'] += self.resources['iron']
+            player.resources['oil'] += self.resources['oil']
+            player.resources['chemicals'] += self.resources['chemicals']
+            player.resources['diamonds'] += self.resources['diamonds']
+            print(get_translation('loot_success'))
+            pygame.mixer.Sound.play(victory_sound)
+            self.resources = {'iron': 0, 'oil': 0, 'chemicals': 0, 'diamonds': 0}
+        else:
+            print(get_translation('loot_failed'))
+
+# Repair Shop
+class RepairShop:
+    def __init__(self):
+        self.repair_status = {}
+
+    def repair(self, item):
+        # Simulate repair process
+        if item in self.repair_status:
+            print(f"Repairing {item}...")
+            # Time simulation placeholder
+        else:
+            print("Item not found in repair status.")
+
+# Player class
+class Player:
+    def __init__(self, name, alliance=None):
+        self.name = name
+        self.stars = 10000  # Starting stars
+        self.egyptian_pounds = 400
+        self.resources = {'iron': 0, 'oil': 0, 'chemicals': 0, 'diamonds': 0}
+        self.weapons = {}
+        self.base_protection = 100  # Base shield protection
+        self.alliance = alliance
+        self.shield_days_left = 4  # Starting shield days
+        self.factory_unit = True  # Initially, the player has the factory unit
+        self.repair_shop = RepairShop()  # Repair shop initialization
+        self.building_queue = []
+        self.last_build_time = time.time()
+
+    def produce_resources(self):
+        self.resources['iron'] += 100
+        self.resources['oil'] += 100
+        self.resources['chemicals'] += 100
+        self.resources['diamonds'] += 100
+
+    def upgrade_base_protection(self):
+        self.base_protection += 50
+
+    def buy_item(self, item):
+        if item in ITEM_PRICES:
+            price = ITEM_PRICES[item]
+            if self.stars >= price['stars'] and self.egyptian_p
